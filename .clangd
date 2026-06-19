@@ -1,0 +1,7 @@
+
+CompileFlags:
+    CompilationDatabase: build
+    Remove: [-f*, -m*]
+
+Index:
+  Background: Build

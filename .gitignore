@@ -5,4 +5,8 @@ build/
 # MacOS Cache
 .DS_Store
 
+# IDE
+.vscode/
 
+# Libs
+third/lib/
