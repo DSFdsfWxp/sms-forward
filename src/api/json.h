@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 /**
  * @brief JSON Node Type Enumeration
  */
@@ -21,12 +23,11 @@ typedef enum {
 typedef struct json_t {
   struct json_t* next; /**< Offset 0: Next node in linked list */
   struct json_t* prev; /**< Offset 4: Previous node in linked list */
-  struct json_t* child; /**< Offset 8: Head of child list (for Arrays/Objects) */
-  /* 4 bytes padding implicitly here or part of custom allocator metadata */
+  struct json_t* child_next; /**< Offset 8: Head of child list (for Arrays/Objects) */
+  struct json_t* child_prev; /**< Offset 12: Head of child list (for Arrays/Objects) */
   int type;          /**< Offset 16: Node type (from json_type_e) */
   char* value_string; /**< Offset 20: String value (if type == JSON_STRING) */
-  int value_int;      /**< Offset 24: Integer or Boolean value */
-  /* 4 bytes padding implicitly here */
+  int64_t value_int;      /**< Offset 24: Integer or Boolean value */
   double value_double; /**< Offset 32: Floating point value */
   char* name;       /**< Offset 40: Node key name (if child of an Object) */
 } json_t;
