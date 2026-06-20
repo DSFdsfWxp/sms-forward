@@ -17,7 +17,7 @@
 typedef struct dbm_msg_count_t {
   uint32_t draft_count;
   uint32_t outbox_count;
-  uint32_t inbox_count;
   uint32_t unread_count;
+  uint32_t inbox_count;
   uint32_t max_count;
 } dbm_msg_count_t;

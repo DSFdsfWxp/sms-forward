@@ -98,17 +98,7 @@ static json_t* sms_resolve_msg_list(json_t *json) {
     LOG_W("msg info query failed");
     return NULL;
   }
-  json_t* data = json_get_object_item(json, "data");
-  if (!data || data->type != JSON_OBJECT) {
-    LOG_W("invalid query result");
-    return NULL;
-  }
-  retcode = json_get_object_item(data, "retcode");
-  if (!retcode || retcode->type != JSON_NUMBER || retcode->value_int != 0) {
-    LOG_W("msg info query failed");
-    return NULL;
-  }
-  json_t* list = json_get_object_item(data, "smsList");
+  json_t* list = json_get_object_item(json, "smsList");
   if (!list || list->type != JSON_ARRAY) {
     LOG_W("invalid query result");
     return NULL;
@@ -131,83 +121,89 @@ static bool sms_mark_msg_is_read(int index) {
   return true;
 }
 
-int sms_ipc_handler(int msg_type_id, const void* input, int input_len,
-                    void* output, int output_len) {
-  if (msg_type_id == IPC_SMS_MSG_ID_SMS_NOTIFY_MSG_COUNT) {
-    LOG_I("checking new message");
-    dbm_msg_count_t msg_cnt = {0};
-    int res0 = -1;
-    int res1 =
-        frwk_ipc_send_sync(IPC_MODULE_DBM, IPC_DBM_MSG_ID_GET_MSG_COUNT, NULL,
-                           0, &msg_cnt, sizeof(msg_cnt), 10, &res0);
+void sms_check_new_msg() {
+  LOG_I("checking new message");
+  dbm_msg_count_t msg_cnt = {0};
+  int res0 = -1;
+  int res1 = frwk_ipc_send_sync(IPC_MODULE_DBM, IPC_DBM_MSG_ID_GET_MSG_COUNT,
+                                NULL, 0, &msg_cnt, sizeof(msg_cnt), 10, &res0);
+  if (res0 != FRWK_OK || res1 != FRWK_OK) {
+    LOG_W("failed to read msg cnt, code: %d, %d", res0, res1);
+    return;
+  }
+  if (msg_cnt.unread_count == 0) {
+    LOG_I("no more new msg");
+    return;
+  }
+
+  if (!sms_buffer || !temp_buffer) {
+    LOG_W("no all buffers are allocated, skipped");
+    return;
+  }
+
+  sms_record_t* records =
+      malloc((msg_cnt.unread_count + 1) * sizeof(sms_record_t));
+  if (!records) {
+    LOG_W("failed to allocate records buffer, skipped");
+    return;
+  }
+
+  uint32_t processd = 0;
+  for (uint32_t i = 1; i < msg_cnt.inbox_count; i += 10) {
+    snprintf(temp_buffer, SMS_TEMP_BUFFER_SIZE,
+             "{\"start\":%u,\"end\":%u,\"smsbox\":1}", i, i + 9u);
+    res0 = -1;
+    res1 = frwk_ipc_send_sync(IPC_MODULE_SMS, IPC_SMS_MSG_ID_GET_MESSAGE_LIST,
+                              temp_buffer, SMS_TEMP_BUFFER_SIZE, sms_buffer,
+                              SMS_BUFFER_SIZE, 10, &res0);
     if (res0 != FRWK_OK || res1 != FRWK_OK) {
-      LOG_W("failed to read msg cnt, code: %d, %d", res0, res1);
-      return 0;
-    }
-    if (msg_cnt.unread_count == 0) {
-      LOG_I("no more new msg");
-      return 0;
+      LOG_W("failed to read msg info, code: %d, %d", res0, res1);
+      goto FAIL;
     }
 
-    if (!sms_buffer || !temp_buffer) {
-      LOG_W("no all buffers are allocated, skipped");
-      return 0;
+    json_t* json = json_parse(sms_buffer);
+    if (!json) {
+      LOG_W("failed to parse msg info json");
+      goto FAIL;
     }
-
-    sms_record_t* records = malloc((msg_cnt.unread_count + 1) * sizeof(sms_record_t));
-    if (!records) {
-      LOG_W("failed to allocate records buffer, skipped");
-      return 0;
-    }
-
-    uint32_t processd = 0;
-    for (uint32_t i = 0; i < msg_cnt.inbox_count; i += 10) {
-      snprintf(temp_buffer, SMS_TEMP_BUFFER_SIZE, "{\"start\":%u,\"end\":%u,\"smsbox\":1}", i, i + 10u);
-      res0 = -1;
-      res1 = frwk_ipc_send_sync(IPC_MODULE_SMS, IPC_SMS_MSG_ID_GET_MESSAGE_LIST,
-                                temp_buffer, SMS_TEMP_BUFFER_SIZE, sms_buffer,
-                                SMS_BUFFER_SIZE, 10, &res0);
-      if (res0 != FRWK_OK || res1 != FRWK_OK) {
-        LOG_W("failed to read msg info, code: %d, %d", res0, res1);
-        goto FAIL;
-      }
-
-      json_t* json = json_parse(sms_buffer);
-      if (!json) {
-        LOG_W("failed to parse msg info json");
-        goto FAIL;
-      }
-      json_t* list = sms_resolve_msg_list(json);
-      if (!list)
-        goto FAIL;
-      int cnt = json_get_child_num(list);
-      for (int j = 0; j < cnt; j++) {
-        json_t* item = json_get_array_item(list, j);
-        sms_record_t* record = records + processd;
-        int index = sms_parse_msg_record(record, item);
-        if (index > 0) {
-          if (sms_mark_msg_is_read(index)) {
-            if (++processd >= msg_cnt.unread_count)
-              break;
-          } else {
-            sms_record_free(record);
-          }
+    json_t* list = sms_resolve_msg_list(json);
+    if (!list)
+      goto FAIL;
+    int cnt = json_get_child_num(list);
+    for (int j = 0; j < cnt; j++) {
+      json_t* item = json_get_array_item(list, j);
+      sms_record_t* record = records + processd;
+      int index = sms_parse_msg_record(record, item);
+      if (index > 0) {
+        if (sms_mark_msg_is_read(index)) {
+          if (++processd >= msg_cnt.unread_count)
+            break;
+        } else {
+          sms_record_free(record);
         }
       }
-      json_free(json);
-      
-      if (processd >= msg_cnt.unread_count)
-        break;
     }
-    records[processd].content = records[processd].phone = NULL;
+    json_free(json);
 
-    LOG_I("got %u unread msg(s), pushing", processd);
-
-    return 0;
-  FAIL:
-    free(records);
-    LOG_W("failed, skipped");
+    if (processd >= msg_cnt.unread_count)
+      break;
   }
+  records[processd].content = records[processd].phone = NULL;
+
+  LOG_I("got %u unread msg(s), pushing", processd);
+
+  return;
+FAIL:
+  free(records);
+  LOG_W("failed, skipped");
+  return;
+}
+
+int sms_ipc_handler(unsigned int from_module_id, int msg_type_id,
+                    const void* input, unsigned int input_len, void* output,
+                    unsigned int output_len, unsigned int timeout_ms) {
+  if (msg_type_id == IPC_SMS_MSG_ID_SMS_NOTIFY_MSG_COUNT)
+    sms_check_new_msg();
   return 0;
 }
 

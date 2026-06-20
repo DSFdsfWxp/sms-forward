@@ -11,7 +11,9 @@ typedef struct sms_record_t {
 } sms_record_t;
 
 void sms_init();
-int sms_ipc_handler(int msg_type_id, const void* input, int input_len,
-                    void* output, int output_len);
+void sms_check_new_msg();
+int sms_ipc_handler(unsigned int from_module_id, int msg_type_id,
+                    const void* input, unsigned int input_len, void* output,
+                    unsigned int output_len, unsigned int timeout_ms);
 
 void sms_records_free(sms_record_t* record);

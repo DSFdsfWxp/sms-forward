@@ -54,6 +54,7 @@ target("sms-forward")
     set_kind("binary")
     set_languages("gnu17")
     add_files("src/*.c")
+    add_files("src/*/*.c")
     add_includedirs("src")
 
     set_toolchains("@bootlin_armv7")

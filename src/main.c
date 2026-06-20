@@ -17,6 +17,7 @@ int main() {
     os_debug_disable();
 
     sms_init();
+    sms_check_new_msg();
 
     frwk_ipc_service(sms_ipc_handler);
     return 0;
