@@ -15,6 +15,7 @@
 #define IPC_SMS_MSG_ID_DELETE_MESSAGE_NORMAL         0x2B03  // 11011 -> sms_delete_message_noraml_wrap
 
 #define IPC_SMS_MSG_ID_PROCESS_SIM_STATUS_CHANGE     0x0FB0  // 4016  -> sms_process_sim_status_change_wrap
+#define IPC_SMS_MSG_ID_PROCESS_NET_STATUS_CHANGE     0x0FB1  // 4017  -> sms_process_net_status_change_wrap
 
 #define IPC_SMS_MSG_ID_GET_MAX_COUNT                 0x2B04  // 11012 -> sms_get_max_count_wrap
 #define IPC_SMS_MSG_ID_GET_MAX_RECIPIENT             0x2B05  // 11013 -> sms_get_max_recipient_wrap

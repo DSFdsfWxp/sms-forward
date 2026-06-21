@@ -1,0 +1,7 @@
+
+#pragma once
+
+#define IPC_MODULE_MNET  4
+
+#define IPC_MNET_MSG_ID_NOTIFY_SIM_STATUS   0x0FB0  // 4016
+#define IPC_MNET_MSG_ID_NOTIFY_NET_STATUS   0x0FB1  // 4017

@@ -10,4 +10,5 @@
 #define LOG_W(fmt, ...) log_raw('W', LOG_TAG, fmt, ##__VA_ARGS__)
 #define LOG_E(fmt, ...) log_raw('E', LOG_TAG, fmt, ##__VA_ARGS__)
 
+void log_init();
 void log_raw(char level, const char* tag, const char *fmt, ...);

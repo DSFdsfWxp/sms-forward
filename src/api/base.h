@@ -16,6 +16,6 @@ int os_debug_disable();
 
 int os_mem_free(void* buff);
 
-int mg_bf_init(mg_buffer_t* buf, int initial_size);
+void *mg_bf_init(mg_buffer_t* buf, int initial_size);
 void mg_bf_free(mg_buffer_t* buf);
 
