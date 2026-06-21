@@ -1,6 +1,8 @@
 #!/bin/sh
 
-if ! pkill -USR1 sms-forward; then
-  echo "sms-forward is not running"
-  exit 1
+PID=$(pidof sms-forward)
+if [ -z "$PID" ]; then
+    echo "sms-forward is not running"
+    exit 1
 fi
+kill -USR1 "$PID"

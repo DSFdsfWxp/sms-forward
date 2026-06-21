@@ -200,11 +200,13 @@ static bool sms_clean_smsbox(dbm_smsbox_type_t type, uint32_t num) {
     cnt = &sms_msg_cnt.draft_count;
   else
     return false;
+  if (num == 0)
+    return true;
   // no enough msgs to clean
   if (num > *cnt)
     return false;
 
-  uint32_t from = *cnt - (*cnt % 10u) + 1u + 10u;
+  uint32_t from = *cnt - 1u - ((*cnt - 1) % 10) + 1u + 10u;
   uint32_t to = from;
   char txt[16];
   json_t* indexes = json_create_item(JSON_ARRAY);
@@ -212,8 +214,8 @@ static bool sms_clean_smsbox(dbm_smsbox_type_t type, uint32_t num) {
     LOG_E("no more mem");
     return false;
   }
-  for (uint32_t n = 0; n < num; n++) {
-    if (to == from) {
+  for (uint32_t n = 0; n < num; ) {
+    if (to <= from) {
       // no enough msgs to clean
       if (from <= 10)
         goto FAIL;
@@ -232,15 +234,17 @@ static bool sms_clean_smsbox(dbm_smsbox_type_t type, uint32_t num) {
         LOG_E("no more mem");
         goto FAIL;
       }
-      json_add_array_item(indexes, indexes);
+      json_add_array_item(indexes, index);
+      n++;
     }
   }
 
   if (!sms_remove_msgs(type, indexes)) {
-    LOG_E("failed");
+    LOG_E("failed to remove %u msg(s) from smsbox %d", num, (int)type);
     return false;
   }
   *cnt -= num;
+  LOG_I("remove %u msg(s) from smsbox %d", num, (int) type);
   return true;
 FAIL:
   json_free(indexes);
@@ -250,14 +254,17 @@ FAIL:
 
 static bool sms_clean_smsboxes() {
   LOG_I("cleaning smsbox");
-  if (sms_msg_cnt.inbox_count > sms_min_inbox_msg_num) {
-    if (!sms_clean_smsbox(dbm_smsbox_inbox,
-                          sms_msg_cnt.inbox_count - sms_min_inbox_msg_num))
-      return false;
-  }
   uint32_t msg_total_cnt = sms_msg_cnt.draft_count + sms_msg_cnt.inbox_count +
                            sms_msg_cnt.outbox_count;
-  if (msg_total_cnt >= sms_msg_cnt_threshold) {
+  if (sms_msg_cnt.inbox_count > sms_min_inbox_msg_num) {
+    uint32_t to_clean = sms_msg_cnt.inbox_count - sms_min_inbox_msg_num;
+    if (to_clean > msg_total_cnt - sms_msg_cnt_threshold)
+      to_clean = msg_total_cnt - sms_msg_cnt_threshold;
+    if (!sms_clean_smsbox(dbm_smsbox_inbox, to_clean))
+      return false;
+    msg_total_cnt -= to_clean;
+  }
+  if (msg_total_cnt > sms_msg_cnt_threshold) {
     uint32_t to_clean = msg_total_cnt - sms_msg_cnt_threshold;
     bool not_perfect = to_clean > sms_msg_cnt.outbox_count;
     if (not_perfect)
@@ -301,7 +308,7 @@ void sms_check_new_msg() {
 
   uint32_t processd = 0;
   for (uint32_t i = 1; i <= sms_msg_cnt.inbox_count; i += 10) {
-    if (!sms_get_msg_page(dbm_smsbox_inbox, i, i + 10u)) {
+    if (!sms_get_msg_page(dbm_smsbox_inbox, i, i + 9u)) {
       free(records);
       LOG_W("failed, skipped");
       pthread_mutex_unlock(&sms_lock);
@@ -310,7 +317,7 @@ void sms_check_new_msg() {
 
     for (uint32_t j = 0; j < sms_msg_page.record_count; j++) {
       sms_record_t* record = records + processd;
-      int index = sms_dump_unread_record_from_page(record, i);
+      int index = sms_dump_unread_record_from_page(record, j);
       if (index > 0) {
         // using low level method to mark to avoid unnecessary msg count update events
         if (sms_mark_msg_is_read(index)) {
@@ -330,6 +337,11 @@ void sms_check_new_msg() {
   // read msg(s) won't produce any new msgs
   sms_update_unread_msg_count();
 
+  for (uint32_t i = 0; records[i].phone; i++)
+    LOG_D("msg: contacts: %s, phone: %s, time: %u, content: %s",
+          records[i].contacts, records[i].phone, records[i].timestamp,
+          records[i].content);
+
   LOG_I("got %u unread msg(s), pushing", processd);
   push_submit_msgs(records);
 
@@ -338,7 +350,7 @@ void sms_check_new_msg() {
   // so maybe no msgs will be lost
   uint32_t msg_total_cnt = sms_msg_cnt.draft_count + sms_msg_cnt.inbox_count +
                            sms_msg_cnt.outbox_count;
-  if (msg_total_cnt >= sms_msg_cnt_threshold) {
+  if (msg_total_cnt > sms_msg_cnt_threshold) {
     LOG_I("smsbox is almost full, current: %u, max: %u", msg_total_cnt, sms_msg_cnt.max_count);
     if (sms_auto_clean) {
       if (!sms_clean_smsboxes())

@@ -1,7 +1,7 @@
 
-#include <stdio.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <limits.h>
 
 #include "core/sms.h"
 #include "util/setting.h"
@@ -32,28 +32,24 @@ static void* config_reload_thread(void* arg) {
 void config_init() {
   bool res = setting_open(CONFIG_FILE_PATH);
   if (!res)
-    LOG_W("failed to load config");
-  else
-    config_load();
+    LOG_W("failed to open config");
+  config_load();
 
   pthread_t thread;
   pthread_attr_t attr;
   int ret = pthread_attr_init(&attr);
   if (ret != 0) {
-    LOG_E("failed to create thread");
-    perror("pthread_attr_init");
+    LOG_E("failed to create thread attr, code: %d", ret);
     return;
   }
-  ret = pthread_attr_setstacksize(&attr, 8192); // 8kb
+  ret = pthread_attr_setstacksize(&attr, 16384);  // 16kb
   if (ret != 0) {
-    LOG_E("failed to create thread");
-    perror("pthread_attr_setstacksize");
+    LOG_E("failed to set thread stack size, code: %d", ret);
     return;
   }
   ret = pthread_create(&thread, &attr, config_reload_thread, NULL);
   if (ret != 0) {
-    LOG_E("failed to create thread");
-    perror("pthread_create");
+    LOG_E("failed to create thread, code: %d", ret);
     return;
   }
   LOG_I("config inited");

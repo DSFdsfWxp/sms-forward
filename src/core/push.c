@@ -13,5 +13,5 @@ void push_submit_msgs(sms_record_t* records) {
 }
 
 void push_alert_smsbox_almost_full() {
-
+  LOG_D("alert smsbox almost full");
 }

@@ -32,11 +32,17 @@ static bool setting_load() {
   fseek(fp, 0, SEEK_END);
   size_t size = ftell(fp);
   fseek(fp, 0, SEEK_SET);
-  char* txt = malloc(size);
+  char* txt = malloc(size + 1);
   if (!txt) {
     LOG_E("no more mem");
     goto CLEAN;
   }
+
+  if (fread(txt, size, 1, fp) != 1) {
+    LOG_E("failed to read setting: %s", setting_path);
+    goto CLEAN;
+  }
+  txt[size] = 0;
 
   setting_json = json_parse(txt);
   if (!setting_json) {
