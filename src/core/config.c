@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #include "core/sms.h"
+#include "core/push.h"
 #include "util/setting.h"
 #include "config.h"
 
@@ -14,6 +15,7 @@
 
 static void config_load() {
   sms_load_config();
+  push_load_config();
 }
 
 static void* config_reload_thread(void* arg) {
@@ -38,10 +40,6 @@ void config_init() {
   pthread_t thread;
   pthread_attr_t attr;
   int ret = pthread_attr_init(&attr);
-  if (ret != 0) {
-    LOG_E("failed to create thread attr, code: %d", ret);
-    return;
-  }
   ret = pthread_attr_setstacksize(&attr, 16384);  // 16kb
   if (ret != 0) {
     LOG_E("failed to set thread stack size, code: %d", ret);
