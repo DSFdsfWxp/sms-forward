@@ -20,3 +20,4 @@ void queue_create(queue_t* obj, uint32_t item_size);
 
 void queue_push(queue_t* obj, const void* item);
 void queue_wait_and_pop(queue_t* obj, void* item);
+uint32_t queue_get_size(queue_t* obj);

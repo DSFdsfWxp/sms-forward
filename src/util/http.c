@@ -36,7 +36,7 @@ void http_request_dispose(http_req_t* req) {
 void http_request_header(http_req_t* req, const char* key, const char* value) {
   if (!req->curl)
     return;
-  size_t len = strlen(key) + strlen(value) + 3;
+  size_t len = strlen(key) + strlen(value) + 4;
   char* txt = malloc(len);
   if (!txt) {
     LOG_E("failed to set header: %s", key);
@@ -47,7 +47,7 @@ void http_request_header(http_req_t* req, const char* key, const char* value) {
   free(txt);
 }
 
-void http_request_body_content_type(http_req_t* req, const char* type) {
+void http_request_content_type(http_req_t* req, const char* type) {
   http_request_header(req, "Content-Type", type);
 }
 

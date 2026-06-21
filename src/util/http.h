@@ -11,7 +11,7 @@ typedef struct http_req_t {
 } http_req_t;
 
 typedef struct http_res_t {
-  /** 0: error, other: http status code */
+  /** @note 0: error; other: http status code */
   uint16_t code;
   void* payload;
   size_t payload_len;
@@ -21,7 +21,7 @@ void http_request_create(http_req_t* req, const char* url);
 void http_request_dispose(http_req_t* req);
 
 void http_request_header(http_req_t* req, const char* key, const char* value);
-void http_request_body_content_type(http_req_t* req, const char* type);
+void http_request_content_type(http_req_t* req, const char* type);
 
 http_res_t http_get(http_req_t* req);
 http_res_t http_post(http_req_t* req, const char* body);

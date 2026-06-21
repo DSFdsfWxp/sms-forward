@@ -305,11 +305,12 @@ void sms_check_new_msg() {
     pthread_mutex_unlock(&sms_lock);
     return;
   }
+  records[0].content = records[0].phone = NULL;
 
   uint32_t processd = 0;
   for (uint32_t i = 1; i <= sms_msg_cnt.inbox_count; i += 10) {
     if (!sms_get_msg_page(dbm_smsbox_inbox, i, i + 9u)) {
-      free(records);
+      sms_records_free(records);
       LOG_W("failed, skipped");
       pthread_mutex_unlock(&sms_lock);
       return;
@@ -321,7 +322,9 @@ void sms_check_new_msg() {
       if (index > 0) {
         // using low level method to mark to avoid unnecessary msg count update events
         if (sms_mark_msg_is_read(index)) {
-          if (++processd >= sms_msg_cnt.unread_count)
+          processd++;
+          records[processd].content = records[processd].phone = NULL;
+          if (processd >= sms_msg_cnt.unread_count)
             break;
         } else {
           sms_record_free(record);
@@ -332,7 +335,6 @@ void sms_check_new_msg() {
     if (processd >= sms_msg_cnt.unread_count)
       break;
   }
-  records[processd].content = records[processd].phone = NULL;
   // update once
   // read msg(s) won't produce any new msgs
   sms_update_unread_msg_count();

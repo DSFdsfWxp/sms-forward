@@ -82,3 +82,13 @@ void queue_wait_and_pop(queue_t* obj, void* item) {
 
   pthread_mutex_unlock(&obj->lock);
 }
+
+uint32_t queue_get_size(queue_t* obj) {
+  pthread_mutex_lock(&obj->lock);
+  int size = 0;
+  sem_getvalue(&obj->item_sem, &size);
+  if (size < 0)
+    size = 0;
+  pthread_mutex_unlock(&obj->lock);
+  return size;
+}

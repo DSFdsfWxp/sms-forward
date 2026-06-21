@@ -7,6 +7,7 @@
 
 typedef struct sms_record_t {
   char* contacts;
+  /** @note NULL: end of array; other: phone number */
   char* phone;
   char* content;
   uint32_t timestamp;
