@@ -1,0 +1,13 @@
+[Unit]
+Description=sms-forward - r200 SMS forwarding service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/root/sms/sms-forward
+ExecReload=/home/root/sms/sms-forward-reload
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

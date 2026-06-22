@@ -2,7 +2,7 @@
 
 ## Project
 
-嵌入式设备（r200）上的短信转发程序。读取设备 SIM 卡的未读短信，通过 IPC 与系统模块（SMS/DBM/MNET）通信，再通过可插拔的后端推送到外部服务。
+品速 r200 设备上的短信转发程序。读取设备 SIM 卡的未读短信，通过 IPC 与系统模块（SMS/DBM/MNET）通信，再通过可插拔的后端推送到外部服务。
 
 - **语言**: C (gnu17), 交叉编译到 `armv7-eabihf`
 - **构建**: `xmake` (跨平台构建系统), 自动下载 bootlin 工具链
@@ -11,12 +11,13 @@
 ## 构建 & 命令
 
 ```bash
-xmake config --toolchain=bootlin_armv7    # 配置交叉编译 (armv7-eabihf)
-xmake                                      # 构建产物在 build/ 下
-xmake f -c && xmake                        # 清理重建
+xmake config             # 配置交叉编译 (armv7-eabihf)
+xmake                    # 构建产物在 build/ 下
+xmake f -c && xmake      # 清理重建
 
 # 部署到设备后:
-sms-forward-reload     # 发送 SIGUSR1 重载配置 (script/sms-forward-reload)
+sms-forward-reload     # 热重载配置 (res/sms-forward-reload)
+systemctl start sms-forward    # systemd 管理 (res/sms-forward.service)
 ```
 
 项目无测试基础设施（嵌入式固件），无 linter/formatter 自动化（`.clang-format` 配置了 Google style + 2 空格缩进，手动使用）。
@@ -31,9 +32,9 @@ sms-forward-reload     # 发送 SIGUSR1 重载配置 (script/sms-forward-reload)
 | `core/sms.c` | 通过 IPC 读取/清理设备短信, 有新消息时调 `push_submit_msgs()` |
 | `core/config.c` | 加载 `/home/root/sms/config.json`, 监听 SIGUSR1 热重载 |
 | `push/` | **推送后端实现目录** — `pushs.c` 定义 `push_backends[]` 注册表 |
-| `util/` | http (libcurl), json, queue, setting, encrypt, log, time, string, vector 等工具模块 |
+| `util/` | http (libcurl), json, queue, setting, encrypt, encode, log, time, string, vector 等工具模块 |
 | `api/` | 设备 SDK 头文件 (IPC 通信、加密等, 外源不可修改) |
-| `cloud/` | 云端侧 JS（当前为空占位） |
+| `cloud/` | 云端侧 JS（smartroute 云函数） |
 
 **初始化顺序** (`main.c:14`):
 ```
@@ -77,9 +78,9 @@ typedef struct push_backend_t {
 6. 批量读取配置数组用 `json_load_str_array()` / `json_load_int_array()`（`util/json.h`）
 7. 模板格式化使用 `str_template()` + `str_template_resolver` 回调（`util/string.h`）；模板占位符如 `{phone}`、`{content}`，未知占位符保持原样。字面花括号用 `{{` 和 `}}` 转义。
 8. 消息缓冲区使用 `vector_t`（`util/vector.h`），在 `add_task` 中累积，`submit` 中发送后 `vector_clear`
-9. HTML 转义使用 `str_escape()`（`util/string.h`），仅在需要 HTML 格式时对用户输入内容进行转义
+9. HTML 转义使用 `str_escape()`（`util/string.h`）
 10. 发起 HTTP 请求使用 `util/http.h` (基于 libcurl 封装)
-11. 需要实时短信统计数据时，通过 IPC 向 DBM 模块查询 `IPC_DBM_MSG_ID_GET_MSG_COUNT`（参见"已确认可用的 IPC 查询"）
+11. 需要实时短信统计数据时，通过 `push_type_alert_smsbox_almost_full` 任务的 `msg_count` 字段获取，该字段由引擎查询 DBM 后填充（`IPC_DBM_MSG_ID_GET_MSG_COUNT`）。后端无需自行发起 IPC。
 12. 加密使用 `util/encrypt.h` (AES-CBC/ECB) 或 `api/encrypt.h` (设备硬件加密)
 13. 若后端有配套的云端代码，在 `cloud/` 下放同名脚本或文件夹
 14. 完成后端后，在 `doc/backend/名称.md` 编写文档，并更新 `doc/backend/index.md`
@@ -93,10 +94,11 @@ typedef struct push_task_t {
     push_type_alert_smsbox_almost_full  // 短信存满告警
   } type;
   sms_record_t* records;            // NULL-terminated 数组 (push_type_msgs)
+  dbm_get_msg_count_res_t msg_count; // DBM 统计数据 (push_type_alert)
 } push_task_t;
 ```
 
-`add_task` 中收到的 `push_task_t` 由引擎管理内存，如需异步处理应在内部深拷贝（`sms_records_free` 由 `pushs_dispose_task` 调用）。
+`add_task` 中收到的 `push_task_t` 由引擎管理内存，如需异步处理应在内部深拷贝（`sms_records_free` 由 `pushs_dispose_task` 调用）。告警任务的 `msg_count` 字段由引擎通过 IPC 查询 DBM 后填充，后端直接使用。
 
 ### 后端节流
 
@@ -107,8 +109,6 @@ typedef struct push_task_t {
 通过 `frwk_ipc_send_sync()` 与其他系统模块通信，消息 ID 和结构体定义见 `api/ipc/*.h`。调用方式在 `src/core/sms.c` 中有完整示例。
 
 **限制**: 不要轻易使用 `frwk_ipc_send_sync`。IPC 的请求/响应结构体、消息 ID 和字段含义取决于设备 SDK，除非能从 `api/ipc/*.h` 明确推断出参数，或用户明确告知了 IPC 接口信息，否则不要调用。
-
-**已确认可用的 IPC 查询**: `IPC_DBM_MSG_ID_GET_MSG_COUNT` — 向 DBM 模块查询各箱体短信数量（无需请求体），返回 `dbm_get_msg_count_res_t`（`api/ipc/dbm.h`）。
 
 ## 工具模块
 
@@ -154,7 +154,7 @@ setting_reload()     // 原子重载，失败时回退旧配置
 ```
 
 - 配置文件路径硬编码为 `/home/root/sms/config.json`
-- 支持 SIGUSR1 热重载（`script/sms-forward-reload`）
+- 支持 SIGUSR1 热重载（`res/sms-forward-reload`）
 - `core/config.c` 协调各模块加载: `config_load()` → `sms_load_config()` + `push_load_config()`
 - `push_load_config()` 按 `push.backendName` 动态选择后端
 
@@ -199,4 +199,5 @@ submit()       → 将缓冲区中所有任务批量发送 → 清空缓冲区
 - `if`/`while` 等控制语句必须使用花括号（clang-format 配置 `AllowShortIfStatementsOnASingleLine: Never`)
 - Include 顺序: 标准库 → SDK API → 项目模块 → 对应头文件，组间空行分隔
 - 日志宏: `LOG_I` `LOG_W` `LOG_E` `LOG_D`，需先定义 `LOG_TAG`
+- 文档文件 (`*.md`) 统一使用中文
 - VSCode 使用 clangd，设置 `--header-insertion=never` (避免自动插入头文件)
