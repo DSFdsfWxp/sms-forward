@@ -14,7 +14,7 @@
 
 事先说明：release 包仅在固件版本 `6.00.7`测试过。
 
-```sh
+```bash
 # 1. 将 release 包传到设备上，然后 SSH 登录设备
 scp sms-forward-1.0.0.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
@@ -22,7 +22,7 @@ ssh root@192.168.1.1
 
 或者如果没有 ssh，用 adb 也是可以的。
 
-```sh
+```bash
 # 1. 将 release 包传到设备上，然后 adb shell 登录设备
 adb push sms-forward-1.0.0.tar.gz /tmp/
 adb shell
