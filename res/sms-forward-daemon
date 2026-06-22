@@ -1,0 +1,2 @@
+#!/bin/sh
+/home/root/sms/sms-forward | logger -t "sms-forward" -p daemon.info

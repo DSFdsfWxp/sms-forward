@@ -5,30 +5,42 @@
 
 ## 优势
 
-- **轻量**: 不依赖 sqlite3，通过 IPC 直连数据库模块，程序体积小。
+- **轻量**: 不依赖 sqlite3，通过 IPC 直连设备数据库模块，程序体积小。
 - **性能**: 事件驱动，不轮询，不过度占用单核 CPU。
 - **插件式后端**: 内置 `wxpusher` 和 `smartroute`，新增后端只需实现 6 个函数。
 - **热重载**: 配置支持热重载，切换后端或修改模板无需重启。
 
 ## 安装
 
-release 包仅适用于固件版本 `6.00.7`。
+事先说明：release 包仅在固件版本 `6.00.7`测试过。
 
 ```bash
 # 1. 将 release 包传到设备上，然后 SSH 登录设备
 scp sms-forward-1.0.0.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
+```
 
+或者如果没有 ssh，用 adb 也是可以的。
+
+```bash
+# 1. 将 release 包传到设备上，然后 adb shell 登录设备
+adb push sms-forward-1.0.0.tar.gz /tmp/
+adb shell
+```
+
+完成后接下来步骤都一样。
+
+```bash
 # 2. 解压并安装
-cd /tmp
-tar xzf sms-forward-1.0.0.tar.gz
-./install.sh
+mkdir -p /tmp/sms-forward
+tar xzf /tmp/sms-forward-1.0.0.tar.gz -C /tmp/sms-forward
+/tmp/sms-forward/install.sh
 
 # 3. 编辑配置文件
 vi /home/root/sms/config.json
 
 # 4. 热重载使配置生效
-/home/root/sms/sms-forward-reload
+systemctl reload sms-forward
 ```
 
 ## 配置
@@ -78,6 +90,16 @@ vi /home/root/sms/config.json
 
 后端专属配置在 `push.<后端名>.*` 命名空间下，详见各后端文档。
 
+## 卸载
+
+```bash
+# 1. SSH 登录设备
+ssh root@192.168.1.1
+
+# 2. 执行卸载脚本
+/home/root/sms/uninstall.sh
+```
+
 ## 开发
 
 ```bash
@@ -98,7 +120,7 @@ xmake
 ./build-release.sh
 ```
 
-产物在 `build/sms-forward-YYYYMMDD.tar.gz`。
+产物在 `build/sms-forward-x.x.x.tar.gz`。
 
 详细指南参见 [AGENTS.md](AGENTS.md)。
 

@@ -10,6 +10,7 @@
 static pthread_mutex_t log_lock;
 
 void log_init() {
+  setlinebuf(stdout);
   pthread_mutex_init(&log_lock, NULL);
 }
 

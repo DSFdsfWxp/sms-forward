@@ -58,7 +58,7 @@ CLEAN:
   return res;
 }
 
-bool setting_open(const char* path) {
+bool setting_init() {
   sigemptyset(&setting_reload_mask);
   sigaddset(&setting_reload_mask, SIGUSR1);
   int ret = pthread_sigmask(SIG_BLOCK, &setting_reload_mask, NULL);
@@ -67,7 +67,10 @@ bool setting_open(const char* path) {
     perror("pthread_sigmask");
     return false;
   }
+  return true;
+}
 
+bool setting_open(const char* path) {
   setting_path = path;
   return setting_load();
 }

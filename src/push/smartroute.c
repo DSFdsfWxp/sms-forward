@@ -150,6 +150,7 @@ static void smartroute_submit() {
         if (g_api_token && *g_api_token) {
           http_request_header(&req, "Authorization", g_api_token);
         }
+        http_request_content_type(&req, "plain/text");
         http_res_t resp = http_post(&req, cipher);
 
         if (resp.code >= 200 && resp.code < 300)

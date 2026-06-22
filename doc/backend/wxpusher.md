@@ -33,12 +33,12 @@
 | 键 | 类型 | 默认值 | 说明 |
 |-----|------|---------|------|
 | `mode` | string | `"standard"` | `"standard"` 或 `"spt"` |
-| `contentType` | int | `2` | 1=纯文本, 2=html, 3=markdown |
+| `contentType` | int | `2` | 推出消息类型 1=纯文本, 2=html, 3=markdown |
 | `summary` | string | `""` | 推送摘要（最长 100 字符） |
 | `url` | string | `""` | 消息点击跳转链接 |
-| `template_msg` | string | `"<b>新短信</b><br>{phone} ({contacts})<br><pre>{content}</pre>"` | 短信消息模板 |
+| `template_msg` | string | `"<h2>新短信</h2><pre style="font-size:14px;white-space:pre-wrap">{content}</pre><p>---</p><table><tr><td><b>发件人</b></td><td>{contacts}</td></tr><tr><td><b>号码</b></td><td>{phone}</td></tr><tr><td><b>时间</b></td><td>{datetime}</td></tr></table>"` | 短信消息模板 |
 | `template_alert` | string | `"<b>短信即将存满！</b><br>已用: {total_count}/{max_count}"` | 告警消息模板 |
-| `separator` | string | `"\n---\n"` | 多条短信之间的分隔符 |
+| `separator` | string | `"<hr>"` | 多条短信之间的分隔符 |
 
 ### 标准推送模式 (`"standard"`)
 

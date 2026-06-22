@@ -1,13 +1,14 @@
 [Unit]
 Description=sms-forward - r200 SMS forwarding service
-After=network.target
+After=m_webui-mount.service
 
 [Service]
 Type=simple
-ExecStart=/home/root/sms/sms-forward
+ExecStart=/home/root/sms/sms-forward-daemon
 ExecReload=/home/root/sms/sms-forward-reload
-Restart=on-failure
+Restart=always
 RestartSec=3
+User=root
 
 [Install]
 WantedBy=multi-user.target

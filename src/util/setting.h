@@ -7,8 +7,14 @@
 #include "api/json.h"
 
 /**
+ * @brief Blocks SIGUSR1 on the calling thread for safe reload signalling.
+ * @return true on successful reload, false on failure.
+ */
+bool setting_init();
+
+/**
  * @brief Open and parse the JSON config file at the given path.
- *        Blocks SIGUSR1 on the calling thread for safe reload signalling.
+ *        
  * @param path  Absolute path to the JSON config file.
  * @return true on success, false on file open or parse failure.
  */

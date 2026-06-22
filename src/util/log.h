@@ -19,7 +19,7 @@
 #endif
 
 /** @brief Set to 0 to strip all LOG_D calls at compile time. */
-#define LOG_DEBUG_ENABLED 1
+#define LOG_DEBUG_ENABLED 0
 
 /**
  * @def LOG_I

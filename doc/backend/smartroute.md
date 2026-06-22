@@ -28,20 +28,29 @@
 
 ## 云端环境变量
 
-### 加密 / SMTP
+### 通用参数
 
-| 变量 | 说明 |
-|------|------|
-| `TOKEN` | 请求鉴权令牌（为空则不校验），设备端 `apiToken` 需与此一致 |
-| `AES_KEY` | 与设备端一致的 AES-256 密钥（64 hex） |
-| `AES_IV` | 与设备端一致的 IV（32 hex） |
-| `SMTP_HOST` | SMTP 服务器地址 |
-| `SMTP_PORT` | SMTP 端口（465/587） |
-| `SMTP_USER` | SMTP 用户名 |
-| `SMTP_PASS` | SMTP 密码 |
-| `SMTP_TO` | 邮件送达地址 |
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `TOKEN` | `""` | 请求鉴权令牌（为空则不校验），设备端 `apiToken` 需与此一致 |
+| `AES_KEY` | `""` | 与设备端一致的 AES-256 密钥（64 hex） |
+| `AES_IV` | `""` | 与设备端一致的 IV（32 hex） |
 
-### WxPusher 推送（与本地 wxpusher 后端同等能力）
+### SMTP 推送
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SMTP_HOST` | `""` | SMTP 服务器地址 |
+| `SMTP_PORT` | `465` | SMTP 端口（465/587） |
+| `SMTP_USER` | `""` | SMTP 用户名 |
+| `SMTP_PASS` | `""` | SMTP 密码 |
+| `SMTP_TO` | `""` | 邮件送达地址 |
+| `TEMPLATE_EMAIL_TEXT` | `"{content}\n=====\n来自: {contacts} ({phone})\n时间: {datetime}"` | 邮件模板（文本） |
+| `TEMPLATE_EMAIL_ALERT_TEXT` | `"短信即将存满! \n已用: {total_count} / {max_count}"` | 告警邮件模板（文本） |
+| `TEMPLATE_EMAIL_HTML` | `"<h2>📩 新短信</h2><pre style="font-size:14px;white-space:pre-wrap">{content}</pre><hr><table><tr><td><b>发件人</b></td><td>{contacts}</td></tr><tr><td><b>号码</b></td><td>{phone}</td></tr><tr><td><b>时间</b></td><td>{datetime}</td></tr></table>"` | 邮件模板（HTML） |
+| `TEMPLATE_EMAIL_ALERT_HTML` | `"<h2>⚠️ 短信即将存满</h2><p>已用: <b>{total_count}</b> / <b>{max_count}</b></p>"` | 告警邮件模板（HTML） |
+
+### WxPusher 推送
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
@@ -51,11 +60,10 @@
 | `WXPUSHER_TOPIC_IDS` | `""` | 主题 ID（逗号分隔） |
 | `WXPUSHER_SPT` | `""` | SPT 模式令牌 |
 | `WXPUSHER_SPT_LIST` | `""` | SPT 列表（逗号分隔） |
-| `CONTENT_TYPE` | `2` | 1=text, 2=html, 3=markdown |
-| `TEMPLATE_EMAIL` | `"From: {contacts} ({phone})\nTime: {datetime}\n\n{content}"` | 邮件模板（文本），自动转换为 HTML 版本 |
-| `TEMPLATE_EMAIL_ALERT` | `"SMS storage almost full!\nUsed: {total_count} / {max_count}"` | 告警邮件模板 |
-| `TEMPLATE_MSG` | `"<b>新短信</b><br>{phone} ({contacts})<br><pre>{content}</pre>"` | 短信消息模板 |
+| `TEMPLATE_MSG` | `"<h2>新短信</h2><pre style="font-size:14px;white-space:pre-wrap">{content}</pre><p>---</p><table><tr><td><b>发件人</b></td><td>{contacts}</td></tr><tr><td><b>号码</b></td><td>{phone}</td></tr><tr><td><b>时间</b></td><td>{datetime}</td></tr></table>"` | 短信消息模板 |
 | `TEMPLATE_ALERT` | `"<b>短信即将存满！</b><br>已用: {total_count}/{max_count}"` | 告警消息模板 |
+| `TEMPLATE_SEPARATOR` | `"<hr>"` | 消息分隔符模板 |
+| `CONTENT_TYPE` | `2` | 推出消息类型 1=text, 2=html, 3=markdown |
 | `SUMMARY` | `""` | 推送摘要 |
 | `URL` | `""` | 消息链接 |
 

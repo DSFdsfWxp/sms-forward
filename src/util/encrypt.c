@@ -9,7 +9,7 @@
 char* encrypt_data(const void* in_data, size_t in_len,
                              const uint8_t* custom_key, size_t key_len,
                              const uint8_t* custom_iv, int is_cbc) {
-  mg_buffer_t out_buf;
+  mg_buffer_t out_buf = {0};
   aes_config_t config;
   char* base64_result = NULL;
 

@@ -167,11 +167,18 @@ static void wxpusher_load_config() {
   g_spt = setting_get_str("push.wxpusher.spt", "");
   g_summary = setting_get_str("push.wxpusher.summary", "");
   g_url = setting_get_str("push.wxpusher.url", "");
-  g_template_msg = setting_get_str("push.wxpusher.template_msg",
-    "<b>新短信</b><br>{phone} ({contacts})<br><pre>{content}</pre>");
+  g_template_msg = setting_get_str(
+      "push.wxpusher.template_msg",
+      "<h2>新短信</h2>"
+      "<pre style=\"font-size:14px;white-space:pre-wrap\">{content}</pre>"
+      "<p>---</p><table>"
+      "<tr><td><b>发件人</b></td><td>{contacts}</td></tr>"
+      "<tr><td><b>号码</b></td><td>{phone}</td></tr>"
+      "<tr><td><b>时间</b></td><td>{datetime}</td></tr>"
+      "</table>");
   g_template_alert = setting_get_str("push.wxpusher.template_alert",
     "<b>短信即将存满！</b><br>已用: {total_count}/{max_count}");
-  g_separator = setting_get_str("push.wxpusher.separator", "\n---\n");
+  g_separator = setting_get_str("push.wxpusher.separator", "<hr>");
   g_uids = json_load_str_array(
     (json_t*)setting_get_raw("push.wxpusher.uids"));
   g_topic_ids = json_load_int_array(

@@ -12,8 +12,14 @@ mkdir -p "$BIN_DIR"
 cp "$DIR/sms-forward" "$BIN_DIR/sms-forward"
 chmod +x "$BIN_DIR/sms-forward"
 
+cp "$DIR/sms-forward-daemon" "$BIN_DIR/sms-forward-daemon"
+chmod +x "$BIN_DIR/sms-forward-daemon"
+
 cp "$DIR/sms-forward-reload" "$BIN_DIR/sms-forward-reload"
 chmod +x "$BIN_DIR/sms-forward-reload"
+
+cp "$DIR/uninstall.sh" "$BIN_DIR/uninstall.sh"
+chmod +x "$BIN_DIR/uninstall.sh"
 
 cp "$DIR/sms-forward.service" /lib/systemd/system/sms-forward.service
 
@@ -38,3 +44,5 @@ systemctl enable sms-forward
 systemctl restart sms-forward
 
 echo "sms-forward installed"
+echo "to uninstall, run: "
+echo "  $BIN_DIR/uninstall.sh"

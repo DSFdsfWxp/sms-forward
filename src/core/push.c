@@ -83,7 +83,7 @@ void push_init() {
 static void push_switch_backend(const char* name) {
   if (!push_active_backend || strcmp(name, push_active_backend->name) != 0) {
     const push_backend_t* const* backend = push_backends;
-    while (backend) {
+    while (*backend) {
       if (!strcmp((*backend)->name, name))
         break;
       backend++;
