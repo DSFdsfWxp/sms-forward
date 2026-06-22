@@ -1,6 +1,4 @@
 
-#include <stddef.h>
-
 #include "api/ipc/apptest.h"
 #include "api/base.h"
 #include "api/frwk.h"
