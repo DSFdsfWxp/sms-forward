@@ -12,6 +12,7 @@
 #include "util/log.h"
 
 int main() {
+    log_init();
     LOG_I(" # sms-forward");
     LOG_I("bootstrap");
 

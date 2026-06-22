@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <string.h>
 
+#include "api/frwk.h"
+#include "api/ipc/dbm.h"
 #include "push/pushs.h"
 #include "util/setting.h"
 #include "util/queue.h"
@@ -121,6 +123,16 @@ void push_submit_msgs(sms_record_t* records) {
 }
 
 void push_alert_smsbox_almost_full() {
-  push_task_t task = {.type = push_type_alert_smsbox_almost_full, .records = NULL};
+  push_task_t task;
+  memset(&task, 0, sizeof(task));
+  task.type = push_type_alert_smsbox_almost_full;
+
+  int res0 = -1;
+  int res1 = frwk_ipc_send_sync(IPC_MODULE_DBM,
+    IPC_DBM_MSG_ID_GET_MSG_COUNT, NULL, 0,
+    &task.msg_count, sizeof(task.msg_count), 10, &res0);
+  if (res0 != FRWK_OK || res1 != FRWK_OK)
+    memset(&task.msg_count, 0, sizeof(task.msg_count));
+
   queue_push(&push_queue, &task);
 }
