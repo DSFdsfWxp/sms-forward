@@ -124,7 +124,7 @@ static void smtp_load_config() {
       "push.smtp.template_msg",
       "<h2>新短信</h2>"
       "<pre style=\"font-size:14px;white-space:pre-wrap\">{content}</pre>"
-      "<hr><table>"
+      "<p>---</p><table>"
       "<tr><td><b>发件人</b></td><td>{contacts}</td></tr>"
       "<tr><td><b>号码</b></td><td>{phone}</td></tr>"
       "<tr><td><b>时间</b></td><td>{datetime}</td></tr>"
