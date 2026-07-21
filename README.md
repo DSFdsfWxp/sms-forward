@@ -5,9 +5,9 @@
 
 ## 优势
 
-- **轻量**: 不依赖 sqlite3，通过 IPC 直连设备数据库模块，程序体积小。
+- **轻量**: 不依赖 sqlite3，通过逆向 IPC 接口直连设备数据库模块，程序体积小。
 - **性能**: 事件驱动，不轮询，不过度占用单核 CPU。
-- **插件式后端**: 内置 `wxpusher` 和 `smartroute`，新增后端只需实现 6 个函数。
+- **插件式后端**: 内置 `wxpusher` 等等，新增后端只需实现 6 个函数。
 - **热重载**: 配置支持热重载，切换后端或修改模板无需重启。
 
 ## 安装
@@ -16,7 +16,7 @@
 
 ```bash
 # 1. 将 release 包传到设备上，然后 SSH 登录设备
-scp sms-forward-1.0.0.tar.gz root@192.168.1.1:/tmp/
+scp sms-forward-1.1.0.tar.gz root@192.168.1.1:/tmp/
 ssh root@192.168.1.1
 ```
 
@@ -24,7 +24,7 @@ ssh root@192.168.1.1
 
 ```bash
 # 1. 将 release 包传到设备上，然后 adb shell 登录设备
-adb push sms-forward-1.0.0.tar.gz /tmp/
+adb push sms-forward-1.1.0.tar.gz /tmp/
 adb shell
 ```
 
