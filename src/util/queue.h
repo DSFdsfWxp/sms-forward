@@ -28,13 +28,15 @@ typedef struct {
  */
 void queue_create(queue_t* obj, uint32_t item_size);
 
-/**
+void queue_dispose(queue_t* obj);
+
+    /**
  * @brief Push an item onto the tail of the queue (non-blocking).
  *        Grows the page list if needed. Thread-safe.
  * @param obj   Queue handle.
  * @param item  Pointer to the item data to copy into the queue.
  */
-void queue_push(queue_t* obj, const void* item);
+    void queue_push(queue_t* obj, const void* item);
 
 /**
  * @brief Pop an item from the head of the queue (blocking).

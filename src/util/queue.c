@@ -19,6 +19,21 @@ void queue_create(queue_t* obj, uint32_t item_size) {
   sem_init(&obj->item_sem, 0, 0);
 }
 
+void queue_dispose(queue_t* obj) {
+  queue_page_t* curr = obj->head;
+  while (curr) {
+    queue_page_t* next = curr->next;
+    free(next);
+    curr = next;
+  }
+  if (obj->free)
+    free(obj->free);
+  obj->head = obj->tail = NULL;
+  obj->free = NULL;
+  sem_destroy(&obj->item_sem);
+  pthread_mutex_destroy(&obj->lock);
+}
+
 static queue_page_t* queue_create_page(queue_t* obj) {
   queue_page_t* page = obj->free;
   if (page)

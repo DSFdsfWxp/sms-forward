@@ -12,7 +12,7 @@
 
 ## 安装
 
-事先说明：release 包仅在固件版本 `6.00.7`测试过。
+事先说明：release 包仅在固件版本 `6.00.7` 和 `6.00.8` 测试过。
 
 ```bash
 # 1. 将 release 包传到设备上，然后 SSH 登录设备
@@ -33,7 +33,7 @@ adb shell
 ```bash
 # 2. 解压并安装
 mkdir -p /tmp/sms-forward
-tar xzf /tmp/sms-forward-1.0.0.tar.gz -C /tmp/sms-forward
+tar xzf /tmp/sms-forward-1.1.0.tar.gz -C /tmp/sms-forward
 /tmp/sms-forward/install.sh
 
 # 3. 编辑配置文件
@@ -126,7 +126,4 @@ xmake
 
 ## 内置后端
 
-| 后端 | 文档 |
-|------|------|
-| wxpusher | [doc/backend/wxpusher.md](doc/backend/wxpusher.md) |
-| smartroute | [doc/backend/smartroute.md](doc/backend/smartroute.md) |
+内置多种推送后端，详情见 [后端列表](doc/backend/index.md)。

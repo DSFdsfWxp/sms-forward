@@ -12,21 +12,21 @@ typedef struct {
   void* data;       /**< Pointer to element storage */
   size_t len;       /**< Number of elements currently held */
   size_t cap;       /**< Allocated capacity (in elements) */
-  size_t elem_size; /**< Size of each element in bytes */
+  size_t item_size; /**< Size of each element in bytes */
 } vector_t;
 
 /**
  * @brief Initialize a vector with the given element size.
  * @param v          Pointer to vector_t (uninitialised).
- * @param elem_size  Size of each element in bytes.
+ * @param item_size  Size of each element in bytes.
  */
-void vector_init(vector_t* v, size_t elem_size);
+void vector_create(vector_t* v, size_t item_size);
 
 /**
  * @brief Free the vector's internal storage and reset to empty.
  *        Does NOT free the vector_t struct itself.
  */
-void vector_free(vector_t* v);
+void vector_dispose(vector_t* v);
 
 /**
  * @brief Append one element at the end. Grows capacity by doubling.
@@ -53,6 +53,11 @@ size_t vector_len(const vector_t* v);
 
 /** @return Pointer to the underlying element array. */
 void* vector_data(const vector_t* v);
+
+void* vector_get(const vector_t* v, size_t i);
+
+void* vector_begin(const vector_t* v);
+void* vector_end(const vector_t* v);
 
 /**
  * @brief Reset length to zero without freeing storage.

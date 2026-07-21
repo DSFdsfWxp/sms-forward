@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "api/ipc/dbm.h"
@@ -21,9 +22,26 @@ typedef struct push_task_t {
     push_type_msgs,                      /**< SMS record forwarding */
     push_type_alert_smsbox_almost_full   /**< SMS storage almost full alert */
   } type;
-  sms_record_t* records;                 /**< NULL-terminated array (msgs only) */
-  dbm_get_msg_count_res_t msg_count;     /**< DBM stats (alert only) */
+  union {
+    sms_record_t* records;                 /**< NULL-terminated array (msgs only) */
+    dbm_get_msg_count_res_t msg_count;     /**< DBM stats (alert only) */
+  };
 } push_task_t;
+
+/**
+ * @brief Context passed to pushs_resolve_var / pushs_resolve_var_html.
+ *
+ * record may be NULL (e.g. for alert templates), in which case
+ * {phone}/{contacts}/{content}/{timestamp}/{datetime} resolve to "".
+ *
+ * dbm_cnt/dbm_cnt_valid supply DBM statistics for count variables;
+ * set dbm_cnt_valid = false when DBM data is unavailable.
+ */
+typedef struct {
+  const sms_record_t* record;
+  const dbm_get_msg_count_res_t* dbm_cnt;
+  bool dbm_cnt_valid;
+} pushs_resolve_ctx_t;
 
 /**
  * @brief Pluggable push backend interface.
@@ -56,3 +74,24 @@ extern const push_backend_t* const push_backends[];
  *        NOT called when a backend is active (records remain caller-owned).
  */
 void pushs_dispose_task(push_task_t* task);
+
+/**
+ * @brief str_template_resolver callback — plain-text variable expansion.
+ *
+ * Supported variables: phone, contacts, content, timestamp, datetime,
+ * inbox_count, unread_count, outbox_count, draft_count, total_count,
+ * max_count.
+ *
+ * Unknown variables return NULL (kept as literal {var} in output).
+ *
+ * @param var  Variable name (without braces).
+ * @param ctx  pushs_resolve_ctx_t* cast to void*.
+ * @return malloc'd string, or NULL for unknown variables.
+ */
+char* pushs_resolve_var(const char* var, void* ctx);
+
+/**
+ * @brief Same as pushs_resolve_var but HTML-escapes phone/contacts/content
+ *        values (& < > " → &amp; &lt; &gt; &quot;).
+ */
+char* pushs_resolve_var_html(const char* var, void* ctx);

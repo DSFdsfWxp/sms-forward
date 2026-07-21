@@ -1,7 +1,9 @@
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "http.h"
 
@@ -9,10 +11,30 @@
 #include "util/log.h"
 
 static bool http_inited = false;
+static CURLSH* http_share = NULL;
+static pthread_mutex_t http_lock_array[CURL_LOCK_DATA_LAST];
+
+static void http_lock_callback(CURL* handle, curl_lock_data data,
+                          curl_lock_access access, void* userptr) {
+  pthread_mutex_lock(&http_lock_array[data]);
+}
+
+static void http_unlock_callback(CURL* handle, curl_lock_data data,
+                                 void* userptr) {
+  pthread_mutex_unlock(&http_lock_array[data]);
+}
 
 void http_request_create(http_req_t* req, const char* url) {
   if (!http_inited) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    for (int i = 0; i < CURL_LOCK_DATA_LAST; i++)
+      pthread_mutex_init(&http_lock_array[i], NULL);
+    http_share = curl_share_init();
+    curl_share_setopt(http_share, CURLSHOPT_LOCKFUNC, http_lock_callback);
+    curl_share_setopt(http_share, CURLSHOPT_UNLOCKFUNC, http_unlock_callback);
+    curl_share_setopt(http_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+    curl_share_setopt(http_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
     http_inited = true;
   }
   req->curl = curl_easy_init();
@@ -21,6 +43,7 @@ void http_request_create(http_req_t* req, const char* url) {
     return;
   }
   curl_easy_setopt(req->curl, CURLOPT_URL, url);
+  curl_easy_setopt(req->curl, CURLOPT_SHARE, http_share);
   req->headers = NULL;
 }
 

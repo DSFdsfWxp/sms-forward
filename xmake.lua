@@ -45,8 +45,41 @@ package("curl_headers")
     end)
 package_end()
 
+package("gnutls_headers")
+    set_kind("library", {headeronly = true})
+    -- libgnutls.so.30.22.0
+    add_urls("https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/gnutls-3.6.4.tar.xz")
+    add_versions("3.6.4", "c663a792fbc84349c27c36059181f2ca86c9442e75ee8b0ad72f5f9b35deab3a")
+    on_install(function (package)
+        os.cp("lib/includes/*", package:installdir("include"))
+
+        local gnutls_dir = package:installdir("include/gnutls")
+        local in_file = path.join(gnutls_dir, "gnutls.h.in")
+        local out_file = path.join(gnutls_dir, "gnutls.h")
+
+        if os.isfile(in_file) then
+            local version = package:version_str()
+            local major, minor, patch = version:match("(%d+)%.(%d+)%.(%d+)")
+            local number = string.format("0x%02x%02x%02x", tonumber(major), tonumber(minor), tonumber(patch))
+            
+            local content = io.readfile(in_file)
+            content = content:gsub("@VERSION@", version)
+            content = content:gsub("@MAJOR@", major)
+            content = content:gsub("@MINOR@", minor)
+            content = content:gsub("@PATCH@", patch)
+            content = content:gsub("@NUMBER@", number)
+            content = content:gsub("@DEFINE_SSIZE_T@", "#include <sys/types.h>")
+            content = content:gsub("@DEFINE_IOVEC_T@", "#include <sys/uio.h>\ntypedef struct iovec giovec_t;")
+            
+            io.writefile(out_file, content)
+            os.rm(in_file)
+        end
+    end)
+package_end()
+
 add_requires("bootlin_armv7_eabihf glibc-bleeding-edge-2018.11-1")
 add_requires("curl_headers 7.61.1")
+add_requires("gnutls_headers 3.6.4")
 
 add_rules("mode.debug", "mode.release")
 
@@ -61,6 +94,7 @@ target("sms-forward")
     set_toolchains("@bootlin_armv7")
 
     add_packages("curl_headers")
+    add_packages("gnutls_headers")
     add_linkdirs("third/lib")
     add_ldflags("-Wl,-rpath-link,third/lib", "-Wl,--as-needed", {force = true})
-    add_links("curl", "meigapps", "meigbase", "pthread")
+    add_links("curl", "meigapps", "meigbase", "gnutls", "pthread")

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <inttypes.h>
 #include <stdbool.h>
 
 #include "api/base.h"
@@ -41,75 +40,6 @@ static vector_t g_msg_buf;
 static dbm_get_msg_count_res_t g_dbm_cnt;
 static bool g_dbm_cnt_valid;
 
-static char* resolve_var(const char* var, void* ctx) {
-  const sms_record_t* record = (const sms_record_t*)ctx;
-  bool is_html = (g_content_type == 2);
-  char tmp[64];
-
-  if (strcmp(var, "phone") == 0) {
-    const char* v = (record && record->phone) ? record->phone : "";
-    return is_html ? str_escape(v) : strdup(v);
-  }
-  if (strcmp(var, "contacts") == 0) {
-    const char* v = (record && record->contacts) ? record->contacts : "";
-    return is_html ? str_escape(v) : strdup(v);
-  }
-  if (strcmp(var, "content") == 0) {
-    const char* v = (record && record->content) ? record->content : "";
-    return is_html ? str_escape(v) : strdup(v);
-  }
-  if (strcmp(var, "timestamp") == 0) {
-    uint32_t ts = record ? record->timestamp : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, ts);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "datetime") == 0) {
-    if (record && record->timestamp > 0) {
-      time_t ts = record->timestamp;
-      struct tm tm_val;
-      localtime_r(&ts, &tm_val);
-      strftime(tmp, sizeof(tmp), "%Y-%m-%d %H:%M:%S", &tm_val);
-      return strdup(tmp);
-    }
-    return strdup("");
-  }
-  if (strcmp(var, "inbox_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid ? g_dbm_cnt.inbox_count : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "unread_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid ? g_dbm_cnt.unread_count : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "outbox_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid ? g_dbm_cnt.outbox_count : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "draft_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid ? g_dbm_cnt.draft_count : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "total_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid
-      ? g_dbm_cnt.draft_count + g_dbm_cnt.inbox_count
-        + g_dbm_cnt.outbox_count
-      : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-  if (strcmp(var, "max_count") == 0) {
-    uint32_t v = g_dbm_cnt_valid ? g_dbm_cnt.max_count : 0;
-    snprintf(tmp, sizeof(tmp), "%" PRIu32, v);
-    return strdup(tmp);
-  }
-
-  return NULL;
-}
-
 static void free_state() {
   free(g_mode);
   free(g_app_token);
@@ -132,7 +62,7 @@ static void free_state() {
   }
   free(g_topic_ids);
 
-  vector_free(&g_msg_buf);
+  vector_dispose(&g_msg_buf);
 
   g_mode = NULL;
   g_app_token = NULL;
@@ -149,7 +79,7 @@ static void free_state() {
 }
 
 static void wxpusher_init() {
-  vector_init(&g_msg_buf, 1);
+  vector_create(&g_msg_buf, 1);
   LOG_I("wxpusher backend inited");
 }
 
@@ -190,9 +120,16 @@ static void wxpusher_load_config() {
 }
 
 static void wxpusher_add_task(push_task_t* task) {
+  str_template_resolver resolver =
+      (g_content_type == 2) ? pushs_resolve_var_html : pushs_resolve_var;
+
   if (task->type == push_type_msgs && task->records) {
     for (sms_record_t* r = task->records; r->phone || r->content; r++) {
-      char* text = str_template(g_template_msg, resolve_var, r);
+      pushs_resolve_ctx_t rctx = {
+          .record = r,
+          .dbm_cnt = &g_dbm_cnt,
+          .dbm_cnt_valid = g_dbm_cnt_valid};
+      char* text = str_template(g_template_msg, resolver, &rctx);
       if (!text)
         continue;
 
@@ -204,7 +141,10 @@ static void wxpusher_add_task(push_task_t* task) {
   } else if (task->type == push_type_alert_smsbox_almost_full) {
     g_dbm_cnt = task->msg_count;
     g_dbm_cnt_valid = true;
-    char* text = str_template(g_template_alert, resolve_var, NULL);
+    pushs_resolve_ctx_t rctx = {
+        .dbm_cnt = &g_dbm_cnt,
+        .dbm_cnt_valid = true};
+    char* text = str_template(g_template_alert, resolver, &rctx);
     if (!text)
       return;
 

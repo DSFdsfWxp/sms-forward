@@ -34,7 +34,6 @@ systemctl start sms-forward    # systemd 管理 (res/sms-forward.service)
 | `push/` | **推送后端实现目录** — `pushs.c` 定义 `push_backends[]` 注册表 |
 | `util/` | http (libcurl), json, queue, setting, encrypt, encode, log, time, string, vector 等工具模块 |
 | `api/` | 设备 SDK 头文件 (IPC 通信、加密等, 外源不可修改) |
-| `cloud/` | 云端侧 JS（smartroute 云函数） |
 
 **初始化顺序** (`main.c:14`):
 ```

@@ -13,7 +13,7 @@
 int main() {
   log_init();
   LOG_I(" # sms-forward");
-  LOG_I(" # 1.0.0");
+  LOG_I(" # 1.1.0");
   LOG_I("");
   LOG_I("bootstrap");
 

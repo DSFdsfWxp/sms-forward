@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <strings.h>
 #include <pthread.h>
@@ -90,6 +91,34 @@ static void sms_record_free(sms_record_t* record) {
   record->content = record->phone = record->contacts = NULL;
 }
 
+static char* sms_extract_contacts(const typeof(*sms_msg_page.records)* record) {
+  if (strlen(record->contacts) > 0)
+    return strdup(record->contacts);
+  const char* trimed = record->content;
+  while (*trimed && isspace(*trimed))
+    trimed++;
+  const char* map[][2] = {
+    {"【", "】"},
+    {"[", "]"}
+  };
+  for (uint8_t i = 0; i < sizeof(map) / sizeof(map[0]); i++) {
+    if (strstr(trimed, map[i][0]) == trimed) {
+      const char* head = trimed + strlen(map[i][0]);
+      const char* tail = strstr(trimed, map[i][1]);
+      if (tail) {
+        uint32_t len = tail - head;
+        char* contacts = malloc(len + 1);
+        if (!contacts)
+          return NULL;
+        memcpy(contacts, head, len);
+        contacts[len] = 0;
+        return contacts;
+      }
+    }
+  }
+  return strdup(record->contacts);
+}
+
 static uint32_t sms_dump_unread_record_from_page(sms_record_t* record,
                                                  uint32_t index) {
   if (index >= sms_msg_page.record_count)
@@ -103,7 +132,7 @@ static uint32_t sms_dump_unread_record_from_page(sms_record_t* record,
   record->timestamp = sms_msg_page.records[index].timestamp;
   record->phone = strdup(sms_msg_page.records[index].phone);
   record->content = strdup(sms_msg_page.records[index].content);
-  record->contacts = strdup(sms_msg_page.records[index].contacts);
+  record->contacts = sms_extract_contacts(sms_msg_page.records + index);
   if (!record->phone || !record->content || !record->contacts) {
     LOG_E("no more mem");
     sms_record_free(record);
@@ -323,6 +352,8 @@ void sms_check_new_msg() {
         // using low level method to mark to avoid unnecessary msg count update events
         if (sms_mark_msg_is_read(index)) {
           processd++;
+          if (sms_msg_cnt.unread_count > 0)
+            sms_msg_cnt.unread_count --;
           records[processd].content = records[processd].phone = NULL;
           if (processd >= sms_msg_cnt.unread_count)
             break;
