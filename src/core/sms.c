@@ -298,7 +298,8 @@ static bool sms_clean_smsboxes() {
     bool not_perfect = to_clean > sms_msg_cnt.outbox_count;
     if (not_perfect)
       to_clean = sms_msg_cnt.outbox_count;
-    if (!sms_clean_smsbox(dbm_smsbox_outbox, to_clean))
+    if (!sms_allow_clean_outbox ||
+        !sms_clean_smsbox(dbm_smsbox_outbox, to_clean))
       return false;
     // inform that manual clean is needed
     if (!not_perfect)
