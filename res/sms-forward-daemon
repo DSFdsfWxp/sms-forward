@@ -1,2 +1,5 @@
 #!/bin/sh
+mkdir -p /tmp/m_tmp/lock
+chmod 755 /tmp/m_tmp/lock
+chmod 755 /tmp/m_tmp
 /home/root/sms/sms-forward | logger -t "sms-forward" -p daemon.info
