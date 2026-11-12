@@ -117,9 +117,10 @@ static void route_init() {
 }
 
 static void route_dispose() {
+  bool shared = g_matched_backend && g_matched_backend == g_unmatched_backend;
   if (g_matched_backend && g_matched_backend->dispose)
     g_matched_backend->dispose();
-  if (g_unmatched_backend && g_unmatched_backend->dispose)
+  if (g_unmatched_backend && !shared && g_unmatched_backend->dispose)
     g_unmatched_backend->dispose();
 
   g_matched_backend = NULL;
@@ -153,21 +154,34 @@ static void route_load_config() {
   g_matched_backend = find_backend(matched_name);
   g_unmatched_backend = find_backend(unmatched_name);
 
+  /* route must not be a sub-backend of itself, otherwise load_config()
+     recurses forever */
+  if (g_matched_backend == &route_backend) {
+    LOG_W("matchedBackend '%s' must not be route itself", matched_name);
+    g_matched_backend = NULL;
+  }
+  if (g_unmatched_backend == &route_backend) {
+    LOG_W("unmatchedBackend '%s' must not be route itself", unmatched_name);
+    g_unmatched_backend = NULL;
+  }
+
   if (!g_matched_backend)
     LOG_W("matchedBackend '%s' not found in registry", matched_name);
   if (!g_unmatched_backend)
     LOG_W("unmatchedBackend '%s' not found in registry", unmatched_name);
 
-  /* Init sub-backends */
+  /* Init/load sub-backends; init() is not idempotent (e.g. smtp allocates
+     credentials and buffers), so a shared backend is handled only once */
+  bool shared = g_matched_backend && g_matched_backend == g_unmatched_backend;
   if (g_matched_backend && g_matched_backend->init)
     g_matched_backend->init();
-  if (g_unmatched_backend && g_unmatched_backend->init)
+  if (g_unmatched_backend && !shared && g_unmatched_backend->init)
     g_unmatched_backend->init();
 
   /* Load config for sub-backends */
   if (g_matched_backend && g_matched_backend->load_config)
     g_matched_backend->load_config();
-  if (g_unmatched_backend && g_unmatched_backend->load_config)
+  if (g_unmatched_backend && !shared && g_unmatched_backend->load_config)
     g_unmatched_backend->load_config();
 
   /* Dynamically set min_interval_ms = max(matched, unmatched) */
@@ -229,18 +243,20 @@ static void route_add_task(push_task_t* task) {
         feed_record(g_unmatched_backend, r);
     }
   } else if (task->type == push_type_alert_smsbox_almost_full) {
-    /* Alert tasks go to both backends */
+    /* Alert tasks go to both backends, a shared backend handles it once */
+    bool shared = g_matched_backend && g_matched_backend == g_unmatched_backend;
     if (g_matched_backend && g_matched_backend->add_task)
       g_matched_backend->add_task(task);
-    if (g_unmatched_backend && g_unmatched_backend->add_task)
+    if (g_unmatched_backend && !shared && g_unmatched_backend->add_task)
       g_unmatched_backend->add_task(task);
   }
 }
 
 static void route_submit() {
+  bool shared = g_matched_backend && g_matched_backend == g_unmatched_backend;
   if (g_matched_backend && g_matched_backend->submit)
     g_matched_backend->submit();
-  if (g_unmatched_backend && g_unmatched_backend->submit)
+  if (g_unmatched_backend && !shared && g_unmatched_backend->submit)
     g_unmatched_backend->submit();
 }
 

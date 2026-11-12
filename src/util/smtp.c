@@ -216,13 +216,19 @@ static bool smtp_transaction(gnutls_session_t session,
   smtp_step_t step = SMTP_STEP_INIT;
   int buf_pos = 0;
 
-  /* Reusable: encode credentials once */
+  /* Reusable: encode credentials once. Encoded length is
+     ((len + 2) / 3) * 4 + 1, refuse credentials that do not fit */
   char b64_user[256];
   char b64_pass[256];
-  b64_encode((const unsigned char*)cfg->username, strlen(cfg->username),
-             b64_user);
-  b64_encode((const unsigned char*)cfg->password, strlen(cfg->password),
-             b64_pass);
+  size_t user_len = strlen(cfg->username);
+  size_t pass_len = strlen(cfg->password);
+  if ((user_len + 2) / 3 * 4 + 1 > sizeof(b64_user) ||
+      (pass_len + 2) / 3 * 4 + 1 > sizeof(b64_pass)) {
+    LOG_E("SMTP username or password too long for AUTH LOGIN");
+    return false;
+  }
+  b64_encode((const unsigned char*)cfg->username, user_len, b64_user);
+  b64_encode((const unsigned char*)cfg->password, pass_len, b64_pass);
 
   /* Build RFC 2822 date */
   char date_buf[64];
@@ -474,6 +480,8 @@ void smtp_session_init(smtp_session_t* sess) {
     free(sess->cmd);
     free(sess->msg);
     sess->buf = sess->cmd = sess->msg = NULL;
+    gnutls_certificate_free_credentials(sess->xcred);
+    sess->xcred = NULL;
     return;
   }
 

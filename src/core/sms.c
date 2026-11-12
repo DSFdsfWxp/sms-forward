@@ -125,6 +125,11 @@ static uint32_t sms_dump_unread_record_from_page(sms_record_t* record,
                                                  uint32_t index) {
   if (index >= sms_msg_page.record_count)
     return 0;
+  uint32_t msg_index = sms_msg_page.records[index].index;
+  // index 0 can never be marked as read, treat it as invalid and skip it
+  // before allocating, otherwise the record buffers would leak
+  if (msg_index == 0)
+    return 0;
   if (*sms_msg_page.records[index].phone == 0 ||
         *sms_msg_page.records[index].content == 0)
     return 0;
@@ -140,7 +145,7 @@ static uint32_t sms_dump_unread_record_from_page(sms_record_t* record,
     sms_record_free(record);
     return 0;
   }
-  return sms_msg_page.records[index].index;
+  return msg_index;
 }
 
 static bool sms_get_msg_page(dbm_smsbox_type_t type, uint32_t from,
@@ -259,6 +264,9 @@ static bool sms_clean_smsbox(dbm_smsbox_type_t type, uint32_t num) {
       from -= 10u;
       if (!sms_get_msg_page(type, from, from + 9u))
         goto FAIL;
+      // just in case
+      if (sms_msg_page.record_count == 0)
+        goto FAIL;
       to = from + sms_msg_page.record_count - 1;
     } else {
       to --;
@@ -356,7 +364,7 @@ void sms_check_new_msg() {
 
     for (uint32_t j = 0; j < sms_msg_page.record_count; j++) {
       sms_record_t* record = records + processd;
-      int index = sms_dump_unread_record_from_page(record, j);
+      uint32_t index = sms_dump_unread_record_from_page(record, j);
       if (index > 0) {
         // using low level method to mark to avoid unnecessary msg count update events
         if (sms_mark_msg_is_read(index)) {

@@ -69,12 +69,18 @@ void push_init() {
   pthread_t thread;
   pthread_attr_t attr;
   int ret = pthread_attr_init(&attr);
+  if (ret != 0) {
+    LOG_E("failed to init thread attr, code: %d", ret);
+    return;
+  }
   ret = pthread_attr_setstacksize(&attr, 16384);  // 16kb
   if (ret != 0) {
     LOG_E("failed to set thread stack size, code: %d", ret);
+    pthread_attr_destroy(&attr);
     return;
   }
   ret = pthread_create(&thread, &attr, push_thread, NULL);
+  pthread_attr_destroy(&attr);
   if (ret != 0) {
     LOG_E("failed to create thread, code: %d", ret);
     return;

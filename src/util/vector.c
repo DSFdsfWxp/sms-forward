@@ -19,11 +19,15 @@ void vector_dispose(vector_t* v) {
 }
 
 static int vector_grow(vector_t* v, size_t needed) {
-  if (needed <= v->cap)
+  // Reserve one extra element as the zero-filled sentinel (see vector.h):
+  // callers memset the element at [len] after pushing, which would write
+  // past the allocation when len happens to equal cap.
+  size_t want = needed + 1;
+  if (want <= v->cap)
     return 0;
 
   size_t new_cap = v->cap ? v->cap : 8;
-  while (new_cap < needed)
+  while (new_cap < want)
     new_cap *= 2;
 
   void* new_data = realloc(v->data, new_cap * v->item_size);
@@ -61,10 +65,8 @@ int vector_push_n(vector_t* v, const void* elems, size_t n) {
 }
 
 int vector_resize(vector_t* v, size_t new_len) {
-  if (new_len > v->cap) {
-    if (vector_grow(v, new_len) != 0)
-      return -1;
-  }
+  if (vector_grow(v, new_len) != 0)
+    return -1;
   v->len = new_len;
   memset((char*)v->data + v->len * v->item_size, 0, v->item_size);
   return 0;

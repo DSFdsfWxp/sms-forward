@@ -97,7 +97,7 @@ typedef struct push_task_t {
 } push_task_t;
 ```
 
-`add_task` 中收到的 `push_task_t` 由引擎管理内存，如需异步处理应在内部深拷贝（`sms_records_free` 由 `pushs_dispose_task` 调用）。告警任务的 `msg_count` 字段由引擎通过 IPC 查询 DBM 后填充，后端直接使用。
+`add_task` 中收到的 `push_task_t` 由引擎管理内存，如需异步处理应在内部深拷贝（`sms_records_free` 由 `pushs_dispose_task_static` 调用）。克隆任务须成对释放：`pushs_clone_task_static()`/`pushs_dispose_task_static()` 或 `pushs_clone_task_dynamic()`/`pushs_dispose_task_dynamic()`。告警任务的 `msg_count` 字段由引擎通过 IPC 查询 DBM 后填充，后端直接使用。
 
 ### 后端节流
 
