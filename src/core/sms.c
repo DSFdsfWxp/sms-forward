@@ -39,6 +39,7 @@ static void sms_update_session_conf() {
   int res = mgdb_get("sms_session_enable", enabled, sizeof(enabled));
   if (res) {
     LOG_E("failed to fetch session conf, code: %d", res);
+    pthread_mutex_unlock(&sms_lock);
     return;
   }
   sms_session_enable = strcasecmp(enabled, "on") == 0;
@@ -88,6 +89,7 @@ static void sms_record_free(sms_record_t* record) {
     free(record->phone);
   if (record->contacts)
     free(record->contacts);
+  record->timestamp = 0;
   record->content = record->phone = record->contacts = NULL;
 }
 
@@ -193,9 +195,15 @@ static bool sms_remove_msgs(dbm_smsbox_type_t type, json_t* index_array) {
   json_t* json = json_create_item(JSON_OBJECT);
   json_t* smsbox = json_create_number(type);
   if (!json || !smsbox) {
+    if (json)
+      json_free(json);
+    if (smsbox)
+      json_free(smsbox);
+    json_free(index_array);
     LOG_E("no more mem");
     return false;
   }
+
   json_add_object_item(json, "index", index_array);
   json_add_object_item(json, "smsbox", smsbox);
   char* request = json_print_buffered(json, 128, 0);
@@ -335,7 +343,7 @@ void sms_check_new_msg() {
     pthread_mutex_unlock(&sms_lock);
     return;
   }
-  records[0].content = records[0].phone = NULL;
+  memset(records, 0, sizeof(sms_record_t));
 
   uint32_t processd = 0;
   for (uint32_t i = 1; i <= sms_msg_cnt.inbox_count; i += 10) {
@@ -355,7 +363,7 @@ void sms_check_new_msg() {
           processd++;
           if (sms_msg_cnt.unread_count > 0)
             sms_msg_cnt.unread_count --;
-          records[processd].content = records[processd].phone = NULL;
+          memset(records + processd, 0, sizeof(sms_record_t));
           if (processd >= sms_msg_cnt.unread_count)
             break;
         } else {
@@ -416,8 +424,23 @@ sms_record_t* sms_records_clone(const sms_record_t* src) {
   uint32_t size = (cnt + 1) * sizeof(sms_record_t);
   sms_record_t* dst = malloc(size);
   if (dst) {
-    memcpy(dst, src, size);
-    dst[cnt].content = dst[cnt].phone = NULL;
+    uint32_t i;
+    for (i = 0; i < cnt; i++) {
+      dst[i].timestamp = src[i].timestamp;
+      dst[i].phone = strdup(src[i].phone);
+      dst[i].contacts = strdup(src[i].contacts);
+      dst[i].content = strdup(src[i].content);
+      if (!dst[i].phone || !dst[i].contacts || !dst[i].content) {
+        sms_record_free(dst + i);
+        break;
+      }
+    }
+    if (i != cnt) {
+      sms_records_free(dst);
+      dst = NULL;
+    } else {
+      dst[cnt].content = dst[cnt].phone = NULL;
+    }
   }
   return dst;
 }

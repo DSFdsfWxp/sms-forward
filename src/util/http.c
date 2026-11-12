@@ -37,14 +37,15 @@ void http_request_create(http_req_t* req, const char* url) {
     curl_share_setopt(http_share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
     http_inited = true;
   }
+
   req->curl = curl_easy_init();
+  req->headers = NULL;
   if (!req->curl) {
     LOG_E("failed to init curl");
     return;
   }
   curl_easy_setopt(req->curl, CURLOPT_URL, url);
   curl_easy_setopt(req->curl, CURLOPT_SHARE, http_share);
-  req->headers = NULL;
 }
 
 void http_request_dispose(http_req_t* req) {

@@ -35,11 +35,16 @@ push_task_t* pushs_clone_task_dynamic(const push_task_t* src) {
   return dst;
 }
 
-void pushs_dispose_task(push_task_t* task) {
+void pushs_dispose_task_static(push_task_t* task) {
   if (task->type == push_type_msgs && task->records) {
     sms_records_free(task->records);
     task->records = NULL;
   }
+}
+
+void pushs_dispose_task_dynamic(push_task_t* task) {
+  pushs_dispose_task_static(task);
+  free(task);
 }
 
 static char* resolve_impl(const char* var, void* ctx, bool html_escape) {

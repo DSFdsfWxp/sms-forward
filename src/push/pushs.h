@@ -70,18 +70,25 @@ extern const push_backend_t* const push_backends[];
 
 /**
  * @brief Clone a task into another task in static memory.
+ *        To free, call pushs_dispose_task_static(task).
  */
 void pushs_clone_task_static(const push_task_t* src, push_task_t* dst);
 
 /**
  * @brief Clone a task into another task in dynamic memory.
+ *        To free, call pushs_dispose_task_dynamic(task).
  */
 push_task_t* pushs_clone_task_dynamic(const push_task_t* src);
 
 /**
- * @brief Free a task.
+ * @brief Free a task in static memory.
  */
-void pushs_dispose_task(push_task_t* task);
+void pushs_dispose_task_static(push_task_t* task);
+
+/**
+ * @brief Free a task in dynamic memory.
+ */
+void pushs_dispose_task_dynamic(push_task_t* task);
 
 /**
  * @brief str_template_resolver callback — plain-text variable expansion.

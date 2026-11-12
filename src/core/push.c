@@ -26,12 +26,11 @@ static void push_post_task(push_task_t* task) {
     push_active_backend->add_task(task);
   else
     LOG_W("backend ignored task");
-  pushs_dispose_task(task);
+  pushs_dispose_task_static(task);
 }
 
 static void *push_thread(void* arg) {
   push_task_t task;
-  int64_t interval = 0;
   while (true) {
     queue_wait_and_pop(&push_queue, &task);
     pthread_mutex_lock(&push_lock);
@@ -46,17 +45,19 @@ static void *push_thread(void* arg) {
         push_active_backend->submit();
       LOG_I("%u push task(s) done", num + 1u);
     } else {
-      pushs_dispose_task(&task);
+      pushs_dispose_task_static(&task);
       LOG_W("no active backend, ignoring push task");
     }
-    interval = push_min_interval_ms;
-    pthread_mutex_unlock(&push_lock);
 
     if (push_active_backend) {
-      int64_t sleep_ms = interval > push_active_backend->min_interval_ms
-                             ? interval
-                             : push_active_backend->min_interval_ms;
+      int64_t sleep_ms =
+          push_min_interval_ms > push_active_backend->min_interval_ms
+              ? push_min_interval_ms
+              : push_active_backend->min_interval_ms;
+      pthread_mutex_unlock(&push_lock);
       time_sleep(sleep_ms);
+    } else {
+      pthread_mutex_unlock(&push_lock);
     }
   }
 }

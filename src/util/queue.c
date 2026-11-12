@@ -23,7 +23,7 @@ void queue_dispose(queue_t* obj) {
   queue_page_t* curr = obj->head;
   while (curr) {
     queue_page_t* next = curr->next;
-    free(next);
+    free(curr);
     curr = next;
   }
   if (obj->free)
