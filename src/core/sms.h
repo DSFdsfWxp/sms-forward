@@ -20,4 +20,5 @@ int sms_ipc_handler(unsigned int from_module_id, int msg_type_id,
                     const void* input, unsigned int input_len, void* output,
                     unsigned int output_len, unsigned int timeout_ms);
 
+sms_record_t* sms_records_clone(const sms_record_t* src);
 void sms_records_free(sms_record_t* records);

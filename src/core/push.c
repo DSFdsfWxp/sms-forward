@@ -26,6 +26,7 @@ static void push_post_task(push_task_t* task) {
     push_active_backend->add_task(task);
   else
     LOG_W("backend ignored task");
+  pushs_dispose_task(task);
 }
 
 static void *push_thread(void* arg) {

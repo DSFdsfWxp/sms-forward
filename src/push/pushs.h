@@ -69,9 +69,17 @@ typedef struct push_backend_t {
 extern const push_backend_t* const push_backends[];
 
 /**
- * @brief Free the records owned by a task.
- *        Called by the engine when there is no active backend.
- *        NOT called when a backend is active (records remain caller-owned).
+ * @brief Clone a task into another task in static memory.
+ */
+void pushs_clone_task_static(const push_task_t* src, push_task_t* dst);
+
+/**
+ * @brief Clone a task into another task in dynamic memory.
+ */
+push_task_t* pushs_clone_task_dynamic(const push_task_t* src);
+
+/**
+ * @brief Free a task.
  */
 void pushs_dispose_task(push_task_t* task);
 

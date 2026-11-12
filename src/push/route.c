@@ -125,8 +125,10 @@ static void route_dispose() {
   g_matched_backend = NULL;
   g_unmatched_backend = NULL;
 
-  free(g_match_field);
-  g_match_field = NULL;
+  if (g_match_field) {
+    free(g_match_field);
+    g_match_field = NULL;
+  }
 
   if (g_keywords) {
     for (int i = 0; g_keywords[i]; i++)

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 #include "util/string.h"
 #include "pushs.h"
@@ -19,9 +20,26 @@ const push_backend_t* const push_backends[] = {
   NULL
 };
 
+void pushs_clone_task_static(const push_task_t* src, push_task_t* dst) {
+  dst->type = src->type;
+  if (src->type == push_type_msgs)
+    dst->records = sms_records_clone(src->records);
+  else
+    memcpy(&dst->msg_count, &src->msg_count, sizeof(src->msg_count));
+}
+
+push_task_t* pushs_clone_task_dynamic(const push_task_t* src) {
+  push_task_t* dst = malloc(sizeof(push_task_t));
+  if (dst)
+    pushs_clone_task_static(src, dst);
+  return dst;
+}
+
 void pushs_dispose_task(push_task_t* task) {
-  if (task->records)
+  if (task->type == push_type_msgs && task->records) {
     sms_records_free(task->records);
+    task->records = NULL;
+  }
 }
 
 static char* resolve_impl(const char* var, void* ctx, bool html_escape) {

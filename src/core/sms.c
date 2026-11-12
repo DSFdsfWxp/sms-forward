@@ -409,6 +409,19 @@ int sms_ipc_handler(unsigned int from_module_id, int msg_type_id,
   return 0;
 }
 
+sms_record_t* sms_records_clone(const sms_record_t* src) {
+  uint32_t cnt = 0;
+  while (src[cnt].phone)
+    cnt++;
+  uint32_t size = (cnt + 1) * sizeof(sms_record_t);
+  sms_record_t* dst = malloc(size);
+  if (dst) {
+    memcpy(dst, src, size);
+    dst[cnt].content = dst[cnt].phone = NULL;
+  }
+  return dst;
+}
+
 void sms_records_free(sms_record_t* records) {
   if (!records)
     return;
